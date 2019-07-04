@@ -5,6 +5,8 @@ import cv2
 
 img_height = 720
 img_width = 1280
+x_axis_assume = 3.7/720
+y_axis_assume = 30.5/720
 
 
 def thresholding(img, s_thresh=(100, 255), sx_thresh=(15, 255)):
@@ -189,8 +191,8 @@ def sliding_window(img, nwindows=9, margin=150, minpix = 1, draw_windows=True):
 def get_curve(img, leftx, rightx):
 	ploty = np.linspace(0, img.shape[0]-1, img.shape[0])
 	y_eval = np.max(ploty)
-	ym_per_pix = 30.5/720 # meters per pixel in y dimension
-	xm_per_pix = 3.7/720 # meters per pixel in x dimension
+	ym_per_pix = y_axis_assume # meters per pixel in y dimension
+	xm_per_pix = x_axis_assume # meters per pixel in x dimension
 
 	# Fit new polynomials to x,y in world space
 	left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
