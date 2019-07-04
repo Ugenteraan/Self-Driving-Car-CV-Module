@@ -224,9 +224,9 @@ def draw_lanes(img, left_fit, right_fit):
 
 
 #rospy 
-# pub = rospy.Publisher('/adas/lane', String, queue_size=100)
-# rospy.init_node('lane_det', anonymous=True)
-# rate = rospy.Rate(10)
+pub = rospy.Publisher('/adas/lane', String, queue_size=100)
+rospy.init_node('lane_det', anonymous=True)
+rate = rospy.Rate(10)
 
 
 cap = cv2.VideoCapture(0)
