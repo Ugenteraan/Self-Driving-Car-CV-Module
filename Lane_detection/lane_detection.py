@@ -230,7 +230,7 @@ pub = rospy.Publisher('/adas/lane', String, queue_size=100)
 rospy.init_node('lane_det', anonymous=True)
 rate = rospy.Rate(10)
 
-
+#VIDEO SOURCE
 cap = cv2.VideoCapture(0)
 
 while (cap.isOpened()):
