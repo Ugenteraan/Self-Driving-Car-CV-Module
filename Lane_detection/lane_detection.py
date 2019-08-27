@@ -1,12 +1,11 @@
 import numpy as np
 import cv2
-# import rospy
-# from std_msgs.msg import String
+import rospy
+from std_msgs.msg import String
+from sensor_msgs.msg import Image
 
-img_height = 720
-img_width = 1280
-x_axis_assume = 3.7/720
-y_axis_assume = 30.5/720
+img_height = 480
+img_width = 640
 
 
 def thresholding(img, s_thresh=(100, 255), sx_thresh=(15, 255)):
@@ -191,8 +190,8 @@ def sliding_window(img, nwindows=9, margin=150, minpix = 1, draw_windows=True):
 def get_curve(img, leftx, rightx):
 	ploty = np.linspace(0, img.shape[0]-1, img.shape[0])
 	y_eval = np.max(ploty)
-	ym_per_pix = y_axis_assume # meters per pixel in y dimension
-	xm_per_pix = x_axis_assume # meters per pixel in x dimension
+	ym_per_pix = 30.5/720 # meters per pixel in y dimension
+	xm_per_pix = 3.7/720 # meters per pixel in x dimension
 
 	# Fit new polynomials to x,y in world space
 	left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
@@ -230,41 +229,71 @@ pub = rospy.Publisher('/adas/lane', String, queue_size=100)
 rospy.init_node('lane_det', anonymous=True)
 rate = rospy.Rate(10)
 
-#VIDEO SOURCE
-cap = cv2.VideoCapture(0)
+def callback(ros_data):
 
-while (cap.isOpened()):
+	np_arr = np.fromstring(ros_data.data, np.uint8)
+	frame = np.reshape(np_arr, (img_height, img_width, 3))
 
-	ret, frame = cap.read()
-
-	if ret == True:
-
-		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-		img_ = thresholding(frame)
-		img_ = perspective_warp(img_)
+	img_ = thresholding(frame)
+	img_ = perspective_warp(img_)
+	try:
 		_, curves, _, _ = sliding_window(img_)
+		drawn_lane = draw_lanes(frame, curves[0], curves[1])
 
-		# drawn_lane = draw_lanes(frame, curves[0], curves[1])
+		data = get_curve(frame, curves[0], curves[1])
+		message = str(data[2])
+	except TypeError as e:
+		message = "No lane detected"
+		pass
+	print(message)
 
-		# cv2.imshow('Frame', drawn_lane)
+	pub.publish(message)
+	rate.sleep()
 
-		# if cv2.waitKey(25) & 0xFF == ord('q'):
-		# 	break
-		data = None
-		message = None
-		try:
-			data = get_curve(frame, curves[0], curves[1])
-			message = str(data[2])
-		except TypeError as e:
-			message = "No lane detected"
-			pass
-			
 
-		pub.publish(message)
-		rate.sleep()
 
-	else:
-		break
+subscriber = rospy.Subscriber("/usb_cam/image_raw", Image, callback, queue_size=1)
 
-cap.release()
 
+try:
+	rospy.spin()
+except KeyboardInterrupt:
+	print("Shutting down")
+
+# cap = cv2.VideoCapture("challenge.mp4")
+
+# while (cap.isOpened()):
+
+# 	ret, frame = cap.read()
+
+# 	if ret == True:
+
+# 		data = None
+# 		message = None
+
+# 		frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+# 		img_ = thresholding(frame)
+# 		img_ = perspective_warp(img_)
+# 		try:
+# 			_, curves, _, _ = sliding_window(img_)
+# 			drawn_lane = draw_lanes(frame, curves[0], curves[1])
+
+# 			cv2.imshow('Frame', drawn_lane)
+
+# 			if cv2.waitKey(25) & 0xFF == ord('q'):
+# 				break
+# 			data = get_curve(frame, curves[0], curves[1])
+# 			message = str(data[2])
+# 		except TypeError as e:
+# 			message = "No lane detected"
+# 			pass
+		
+# 		print(message)	
+
+# 		# pub.publish(message)
+# 		# rate.sleep()
+
+# 	else:
+# 		break
+
+# cap.release()
