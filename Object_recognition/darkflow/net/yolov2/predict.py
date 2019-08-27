@@ -12,8 +12,8 @@ from ...cython_utils.cy_yolo2_findboxes import box_constructor
 from std_msgs.msg import String
 
 pub = rospy.Publisher('/adas/obj', String, queue_size=100)
-rospy.init_node('obj_det', anonymous=True)
-rate = rospy.Rate(10)
+# rospy.init_node('obj_det', anonymous=True)
+# rate = rospy.Rate(10)
 
 def expit(x):
 	return 1. / (1. + np.exp(-x))
@@ -101,12 +101,12 @@ def postprocess(self, net_out, im, save = True):
 
 		stringed_msg = str(message_json)
 		pub.publish(stringed_msg)
-		rate.sleep()
-		# cv2.rectangle(imgcv,
-		# 	(left, top), (right, bot),
-		# 	colors[max_indx], thick)
-		# cv2.putText(imgcv, str(safestatus), (left, top - 12),
-		# 	0, 1e-3 * h, colors[max_indx],thick//3)
+		# rate.sleep()
+		cv2.rectangle(imgcv,
+			(left, top), (right, bot),
+			colors[max_indx], thick)
+		cv2.putText(imgcv, str(safestatus), (left, top - 12),
+			0, 1e-3 * h, colors[max_indx],thick//3)
 		# cv2.imwrite(img_name, imgcv)
 
 
@@ -122,6 +122,4 @@ def postprocess(self, net_out, im, save = True):
 			f.write(textJSON)
 		return
 
-	# cv2.imwrite(img_name, imgcv)
-
-	
+	cv2.imwrite(img_name, imgcv)
