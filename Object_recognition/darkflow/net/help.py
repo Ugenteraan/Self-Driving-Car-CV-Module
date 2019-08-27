@@ -8,6 +8,10 @@ import numpy as np
 import sys
 import cv2
 import os
+import rospy
+from sensor_msgs.msg import Image
+
+img_height, img_width = 480,640
 
 old_graph_msg = 'Resolving old graph def {} (no guarantee)'
 
@@ -69,54 +73,64 @@ def camera(self):
     file = self.FLAGS.demo
     SaveVideo = self.FLAGS.saveVideo
     
-    if file == 'camera':
-        file = 0
-    else:
-        assert os.path.isfile(file), \
-        'file {} does not exist'.format(file)
+    # if file == 'camera':
+    #     file = 0
+    # else:
+    #     assert os.path.isfile(file), \
+    #     'file {} does not exist'.format(file)
         
-    camera = cv2.VideoCapture(file)
+    # camera = cv2.VideoCapture(file)
     
-    if file == 0:
-        self.say('Press [ESC] to quit demo')
+    # if file == 0:
+    #     self.say('Press [ESC] to quit demo')
         
-    assert camera.isOpened(), \
-    'Cannot capture source'
+    # assert camera.isOpened(), \
+    # 'Cannot capture source'
     
-    if file == 0:#camera window
-        cv2.namedWindow('', 0)
-        _, frame = camera.read()
-        height, width, _ = frame.shape
-        cv2.resizeWindow('', width, height)
-    else:
-        _, frame = camera.read()
-        height, width, _ = frame.shape
+    # if file == 0:#camera window
+    #     cv2.namedWindow('', 0)
+    #     _, frame = camera.read()
+    #     height, width, _ = frame.shape
+    #     cv2.resizeWindow('', width, height)
+    # else:
+    #     _, frame = camera.read()
+    #     height, width, _ = frame.shape
 
-    if SaveVideo:
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        if file == 0:#camera window
-          fps = 1 / self._get_fps(frame)
-          if fps < 1:
-            fps = 1
-        else:
-            fps = round(camera.get(cv2.CAP_PROP_FPS))
-        videoWriter = cv2.VideoWriter(
-            'video.avi', fourcc, fps, (width, height))
+    # if SaveVideo:
+    #     fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    #     if file == 0:#camera window
+    #       fps = 1 / self._get_fps(frame)
+    #       if fps < 1:
+    #         fps = 1
+    #     else:
+    #         fps = round(camera.get(cv2.CAP_PROP_FPS))
+    #     videoWriter = cv2.VideoWriter(
+    #         'video.avi', fourcc, fps, (width, height))
 
     # buffers for demo in batch
-    buffer_inp = list()
-    buffer_pre = list()
+    rospy.init_node('input_img', anonymous=True)
+    rate = rospy.Rate(10)
+
+    # buffer_inp = list()
+    # buffer_pre = list()
     
-    elapsed = int()
-    start = timer()
+    # elapsed = int()
+    # start = timer()
     self.say('Press [ESC] to quit demo')
     # Loop through frames
-    while camera.isOpened():
+    def callback(ros_data, elapsed=0, buffer_inp=[], buffer_pre = [], start=timer()):
         elapsed += 1
-        _, frame = camera.read()
-        if frame is None:
-            print ('\nEnd of Video')
-            break
+        # _, frame = camera.read()
+        #####
+        np_arr = np.fromstring(ros_data.data, np.uint8)
+        frame  = np.reshape(np_arr, (img_height, img_width, 3))
+        # cv2.imshow('f', frame)
+        # cv2.waitKey(0)
+        #####
+
+        # if frame is None:
+        #     print ('\nEnd of Video')
+        #     break
         preprocessed = self.framework.preprocess(frame)
         buffer_inp.append(frame)
         buffer_pre.append(preprocessed)
@@ -143,14 +157,21 @@ def camera(self):
             sys.stdout.flush()
         if file == 0: #camera window
             choice = cv2.waitKey(1)
-            if choice == 27: break
+            # if choice == 27: break
 
-    sys.stdout.write('\n')
-    if SaveVideo:
-        videoWriter.release()
-    camera.release()
-    if file == 0: #camera window
-        cv2.destroyAllWindows()
+    subscriber = rospy.Subscriber("/usb_cam/image_raw", Image, callback, queue_size=1)
+
+    try:
+        rospy.spin()
+    except KeyboardInterrupt:
+        print('Shut down')
+
+    # sys.stdout.write('\n')
+    # if SaveVideo:
+    #     videoWriter.release()
+    # camera.release()
+    # if file == 0: #camera window
+    #     cv2.destroyAllWindows()
 
 def to_darknet(self):
     darknet_ckpt = self.darknet
